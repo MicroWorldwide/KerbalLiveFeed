@@ -8,6 +8,7 @@ Ideas scratch pad
 * Fix focus system
   * https://docs.unity3d.com/Documentation/ScriptReference/GUI.FocusWindow.html
   * Consume events when in textareas or over GUIs/buttons.
+  * http://answers.unity3d.com/questions/352790/best-way-to-handle-keypress.html
 * GUI events should be managed inside OnGUI, but GUI modified outside.
 * Add onclick event queue for shared links to open browser e.g.
       button.OnClick += (e) => Application.OpenURL(magicHypertextThingie.matchButton());

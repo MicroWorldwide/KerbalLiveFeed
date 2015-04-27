@@ -95,7 +95,6 @@ namespace KLF
                     case GameScenes.SPACECENTER:
                     case GameScenes.EDITOR:
                     case GameScenes.FLIGHT:
-                    case GameScenes.SPH:
                     case GameScenes.TRACKSTATION:
                         return true;
                     default:
@@ -285,9 +284,6 @@ namespace KLF
                         break;
                     case GameScenes.EDITOR:
                         statusArray[1] = "In Vehicle Assembly Building";
-                        break;
-                    case GameScenes.SPH:
-                        statusArray[1] = "In Space Plane Hangar";
                         break;
                     case GameScenes.TRACKSTATION:
                         statusArray[1] = "At Tracking Station";
@@ -560,7 +556,7 @@ namespace KLF
             if(ves.orbit != null
             && ves.orbit.referenceBody != null
             && ves.orbit.referenceBody.atmosphere
-            && ves.orbit.altitude < ves.orbit.referenceBody.maxAtmosphereAltitude)
+            && ves.orbit.altitude < ves.orbit.referenceBody.atmosphereDepth)
             {//Vessel inside its body's atmosphere
                 switch (ves.situation)
                 {
@@ -571,7 +567,7 @@ namespace KLF
                         break;
                     default:
                         if (ves.situation == Vessel.Situations.ESCAPING
-                        || (float)ves.orbit.ApA > ves.orbit.referenceBody.maxAtmosphereAltitude)
+                        || (float)ves.orbit.ApA > ves.orbit.referenceBody.atmosphereDepth)
                             //If the apoapsis of the orbit is above the atmosphere, vessel is aerobraking
                             vDetail.Activity = Activity.Aerobraking;
                         break;
