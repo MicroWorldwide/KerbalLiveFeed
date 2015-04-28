@@ -35,6 +35,8 @@ namespace KLF
         public bool ShowOtherShips = true;
         [OptionalField(VersionAdded = 3)]
         public bool ShowOrbits = true;
+        [OptionalField(VersionAdded = 3)]
+        public bool SendNotifications = true;
 
         [OnDeserializing]
         private void SetDefault(StreamingContext sc)

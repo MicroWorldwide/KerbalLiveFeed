@@ -390,7 +390,8 @@ class ConsoleClient : Client
                             break;
 
                         default:
-                            if (key.KeyChar != '\0')
+                            if(key.KeyChar != '\0'
+                            && sb.Length <= 215)
                                 sb.Append(key.KeyChar);
                             else if (Console.CursorLeft > 0)
                                 Console.SetCursorPosition(Console.CursorLeft - 1, Console.CursorTop);

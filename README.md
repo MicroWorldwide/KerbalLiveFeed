@@ -2,22 +2,26 @@
 
 Plugin, Client, and Server created by Alfred Lam (C) GNU GPLv3
 
-
 ## Installation
 
-* Place KLFClient.exe in your KSP install folder.
-* Place KLF folder in your GameData folder.
+* The KLFClient must be installed into the root KSP directory.
+
+> KLFClient.exe
+> KLFClientConfig.xml
+
+* Place the "KLF" folder in your GameData/ folder.
 
 
 
 ## Usage
 
 * Run KLFClient.exe
-* Use the listed commands to configure username and server to connect.
-* Use KLFClient.exe to connect to a server.
+* Configure a username and server, and use /connect
 * Start KSP
 
-_MacOS/Linux users run in a new terminal:  TERM=ansi; mono KLFClient.exe_
+_MacOS/Linux users should open a terminal window and run the following:_
+
+    TERM=ansi; mono KLFClient.exe
 
 
 
@@ -28,12 +32,6 @@ _MacOS/Linux users run in a new terminal:  TERM=ansi; mono KLFClient.exe_
    * Make sure the Plugin resides within the GameData directory:
 
      >     GameData/KLF/Plugins/KerbalLiveFeed.dll
-
-*  Game crashes when trying to view screenshots.
-
-   * If using the Linux client you can modify the KSP binary to avoid a crash:
-
-     See [forums for more detail](http://forum.kerbalspaceprogram.com/threads/24529-The-Linux-compatibility-thread!?p=857019&viewfull=1#post857019)
 
 *  Random text and symbols instead of colour output in KLFClient.exe
 

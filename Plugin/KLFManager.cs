@@ -9,6 +9,7 @@ using UnityEngine;
 
 namespace KLF
 {
+    [KSPAddon(KSPAddon.Startup.MainMenu, true)]
     public class KLFManager : MonoBehaviour
     {
         public struct VesselEntry
@@ -40,8 +41,8 @@ namespace KLF
         public const int MaxInactiveVesselsPerUpdate = 8;
         public const int StatusArrayMinSize = 2;
         public const int MaxVesselNameLength = 32;
-        public const float VesselTimeoutDelay = 6.0f;
-        public const float IdleDelay = 120.0f;
+        public const float VesselTimeoutDelay = 30.0f;
+        public const float IdleDelay = 300.0f;
         public const float PluginDataWriteInterval = 5.0f;
         public const float GlobalSettingsSaveInterval = 10.0f;
 
@@ -67,6 +68,7 @@ namespace KLF
         private float LastPluginUpdateWriteTime = 0.0f;
         private float LastInteropWriteTime = 0.0f;
         private float LastKeyPressTime = 0.0f;
+        private string KSP_SC_Location = "At Space Center";
 
         private Queue<KLFVesselUpdate> VesselUpdateQueue = new Queue<KLFVesselUpdate>();
 
@@ -77,6 +79,57 @@ namespace KLF
         private bool MappingChatKey = false;
         private bool MappingViewKey = false;
         private bool SharingScreenshot = false;
+        private bool IsEditorLocked = false;
+
+        // Stock APP Toolbar
+        private ApplicationLauncherButton KLF_Button = null;
+        private Texture2D KLF_button_on = new Texture2D(38, 38, TextureFormat.ARGB32, false);
+        private Texture2D KLF_button_off = new Texture2D(38, 38, TextureFormat.ARGB32, false);
+        private Texture2D KLF_button_alert = new Texture2D(38, 38, TextureFormat.ARGB32, false);
+        private Texture2D KLF_button_alert_1 = new Texture2D(38, 38, TextureFormat.ARGB32, false);
+        private Texture2D KLF_button_alert_2 = new Texture2D(38, 38, TextureFormat.ARGB32, false);
+        private int KLF_button_alert_anim = 0;
+        private bool KLF_Texture_Load = false;
+
+        private void OnGUIApplicationLauncherReady()
+        {
+            if (!KLF_Texture_Load)
+            {
+                if (GameDatabase.Instance.ExistsTexture("KLF/Textures/KLF_ON"))
+                    KLF_button_on = GameDatabase.Instance.GetTexture("KLF/Textures/KLF_ON", false);
+                if (GameDatabase.Instance.ExistsTexture("KLF/Textures/KLF_OFF"))
+                    KLF_button_off = GameDatabase.Instance.GetTexture("KLF/Textures/KLF_OFF", false);
+                if (GameDatabase.Instance.ExistsTexture("KLF/Textures/KLF_ALERT"))
+                    KLF_button_alert = GameDatabase.Instance.GetTexture("KLF/Textures/KLF_ALERT", false);
+                if (GameDatabase.Instance.ExistsTexture("KLF/Textures/KLF_ALERT1"))
+                    KLF_button_alert_1 = GameDatabase.Instance.GetTexture("KLF/Textures/KLF_ALERT1", false);
+                if (GameDatabase.Instance.ExistsTexture("KLF/Textures/KLF_ALERT2"))
+                    KLF_button_alert_2 = GameDatabase.Instance.GetTexture("KLF/Textures/KLF_ALERT2", false);
+                KLF_Texture_Load = true;
+            }
+            if (KLF_Button == null)
+            {
+                KLF_Button = ApplicationLauncher.Instance.AddModApplication(GUIToggle
+                        , GUIToggle
+                        , null, null
+                        , null, null
+                        , ApplicationLauncher.AppScenes.ALWAYS
+                        , KLF_button_on
+                        );
+            }
+        }
+
+        private void GUIToggle()
+        {
+            KLFInfoDisplay.InfoDisplayActive = !KLFInfoDisplay.InfoDisplayActive;
+            if (KLFInfoDisplay.InfoDisplayActive)
+            {
+                KLF_Button.SetTexture(KLF_button_on);
+                KLF_button_alert_anim = 0;
+            }
+            else
+                KLF_Button.SetTexture(KLF_button_off);
+        }
 
         public bool GlobalUIToggle
         {
@@ -149,6 +202,34 @@ namespace KLF
                 KLFCameraScript script = PlanetariumCam.gameObject.AddComponent<KLFCameraScript>();
                 script.Manager = this;
             }
+
+            // Animate ALert Icon
+            if (KLF_button_alert_anim != 0)
+            {
+                switch (KLF_button_alert_anim)
+                   {
+                       case 1:
+                           KLF_Button.SetTexture(KLF_button_alert);
+                           KLF_button_alert_anim = 2;
+                           break;
+                       case 2:
+                           KLF_Button.SetTexture(KLF_button_alert_1);
+                           KLF_button_alert_anim = 3;
+                           break;
+                       case 3:
+                           KLF_Button.SetTexture(KLF_button_alert_2);
+                           KLF_button_alert_anim = 4;
+                           break;
+                       case 4:
+                           KLF_Button.SetTexture(KLF_button_alert_1);
+                           KLF_button_alert_anim = 1;
+                           break;
+                       default:
+                           KLF_Button.SetTexture(KLF_button_alert);
+                           KLF_button_alert_anim = 1;
+                           break;
+                       }
+                }
 
             //Handle all queued vessel updates
             while (VesselUpdateQueue.Count > 0)
@@ -280,7 +361,7 @@ namespace KLF
                     switch (HighLogic.LoadedScene)
                     {
                     case GameScenes.SPACECENTER:
-                        statusArray[1] = "At Space Center";
+                        statusArray[1] = KSP_SC_Location;
                         break;
                     case GameScenes.EDITOR:
                         statusArray[1] = "In Vehicle Assembly Building";
@@ -961,7 +1042,22 @@ namespace KLF
             {
                 case KLFCommon.ClientInteropMessageID.ChatReceive:
                     if (data != null)
-                        KLFChatDisplay.Line(Encoder.GetString(data));
+                    {
+                        string NNmessage = Encoder.GetString(data);
+                        if (!KLFGlobalSettings.Instance.ChatWindowEnabled || !KLFInfoDisplay.InfoDisplayActive) 
+                        {
+
+                            KLF_Button.SetTexture(KLF_button_alert);
+                            KLF_button_alert_anim = 1;
+                            MessageSystem.Message m = new MessageSystem.Message("Kerbal Live Feed Activity", NNmessage , MessageSystemButton.MessageButtonColor.YELLOW, MessageSystemButton.ButtonIcons.MESSAGE);
+                            if (KLFGlobalSettings.Instance.SendNotifications)
+                            {
+                                m = new MessageSystem.Message("Kerbal Live Feed Activity", NNmessage, MessageSystemButton.MessageButtonColor.YELLOW, MessageSystemButton.ButtonIcons.MESSAGE);
+                                MessageSystem.Instance.AddMessage(m);
+                            }
+                        }
+                        KLFChatDisplay.Line(NNmessage);
+                    }
                     break;
 
                 case KLFCommon.ClientInteropMessageID.ClientData:
@@ -1055,19 +1151,27 @@ namespace KLF
 
         public void Awake()
         {//MonoBehaviour
+            GameEvents.onGUIApplicationLauncherReady.Add(OnGUIApplicationLauncherReady);
+            GameEvents.onGUIAdministrationFacilitySpawn.Add(SetLocationAdmin);
+            GameEvents.onGUIAstronautComplexSpawn.Add(SetLocationAstro);
+            GameEvents.onGUIMissionControlSpawn.Add(SetLocationMC);
+            GameEvents.onGUIRnDComplexSpawn.Add(SetLocationRD);
+            GameEvents.onGUIAdministrationFacilityDespawn.Add(SetLocationSC);
+            GameEvents.onGUIAstronautComplexDespawn.Add(SetLocationSC);
+            GameEvents.onGUIMissionControlDespawn.Add(SetLocationSC);
+            GameEvents.onGUIRnDComplexDespawn.Add(SetLocationSC);
             DontDestroyOnLoad(this);
             CancelInvoke();
-            InvokeRepeating("UpdateStep", 1 / 60.0f, 1 / 60.0f);
-
-            if(KSP.IO.File.Exists<KLFManager>(InteropClientFilename))
+            if (KSP.IO.File.Exists<KLFManager>(InteropClientFilename))
             {
                 try
-                {//delete any existing transaction file
+                {
                     KSP.IO.File.Delete<KLFManager>(InteropClientFilename);
                 }
-                catch {}
+                catch { }
             }
 
+            InvokeRepeating("UpdateStep", 1 / 60.0f, 1 / 60.0f);
             //load global settings
             try
             {
@@ -1094,6 +1198,26 @@ namespace KLF
             {
             }
         }
+        public void SetLocationSC()
+        {
+            KSP_SC_Location = "At Space Center";
+        }
+        public void SetLocationAdmin()
+        {
+            KSP_SC_Location = "In Administration";
+        }
+        public void SetLocationAstro()
+        {
+            KSP_SC_Location = "In Astronaut Complex";
+        }
+        public void SetLocationMC()
+        {
+            KSP_SC_Location = "In Mission Control";
+        }
+        public void SetLocationRD()
+        {
+            KSP_SC_Location = "In R&D Complex";
+        }
 
         public void Update()
         {
@@ -1106,10 +1230,31 @@ namespace KLF
             //key events
             if (Input.GetKeyDown(KLFGlobalSettings.Instance.GuiToggleKey))
                 KLFInfoDisplay.InfoDisplayActive = !KLFInfoDisplay.InfoDisplayActive;
+            if (Input.GetKeyDown(KLFGlobalSettings.Instance.GuiToggleKey))
+            {
+                KLFInfoDisplay.InfoDisplayActive = !KLFInfoDisplay.InfoDisplayActive;
+                if (KLFInfoDisplay.InfoDisplayActive)
+                {
+                    KLF_Button.SetTexture(KLF_button_on);
+                    KLF_button_alert_anim = 0;
+                }
+                else
+                {
+                    KLF_Button.SetTexture(KLF_button_off);
+                    CheckEditorLock();
+                }
+            }
             if (Input.GetKeyDown(KLFGlobalSettings.Instance.ScreenshotKey) || SharingScreenshot)
                 ShareScreenshot();
             if (Input.GetKeyDown(KLFGlobalSettings.Instance.ChatKey))
+            {
                 KLFGlobalSettings.Instance.ChatWindowEnabled = !KLFGlobalSettings.Instance.ChatWindowEnabled;
+                if (KLFGlobalSettings.Instance.ChatWindowEnabled && KLFInfoDisplay.InfoDisplayActive)
+                {
+                    KLF_Button.SetTexture(KLF_button_on);
+                    KLF_button_alert_anim = 0;
+                }
+            }
             if (Input.GetKeyDown(KLFGlobalSettings.Instance.ViewKey))
                 KLFScreenshotDisplay.WindowEnabled = !KLFScreenshotDisplay.WindowEnabled;
 
@@ -1159,10 +1304,12 @@ namespace KLF
         //GUI
         public void OnGUI()
         {//MonoBehavior
-            DrawGUI();
-        }
-        public void DrawGUI()
-        {
+            if (HighLogic.LoadedScene == GameScenes.MAINMENU && IsEditorLocked)
+            {
+                // Unloacking Input Lock if going to main menu
+                InputLockManager.RemoveControlLock("KLF_INPUTLOCKMANAGER_LOCK");
+                IsEditorLocked = false;
+            }
             if (ShouldDrawGui)
             {//Init info display options
                 if (KLFInfoDisplay.LayoutOptions == null)
@@ -1222,13 +1369,16 @@ namespace KLF
                                     );
 
                 if (KLFScreenshotDisplay.WindowEnabled)
+                {
+                    int TESTTEST = KLFScreenshotDisplay.WatchPlayerIndex;
                     KLFScreenshotDisplay.WindowPos =
                         GUILayout.Window( 999998
                                         , KLFScreenshotDisplay.WindowPos
                                         , ScreenshotWindow
-                                        , "Kerbal LiveFeed Viewer"
+                                        , "Kerbal LiveFeed Viewer: Displaying Image (" + TESTTEST.ToString() + ")"
                                         , KLFScreenshotDisplay.LayoutOptions
                                         );
+                }
 
                 if (KLFGlobalSettings.Instance.ChatWindowEnabled)
                     KLFChatDisplay.WindowPos =
@@ -1377,6 +1527,12 @@ namespace KLF
                                         );
                     GUILayout.EndHorizontal();
 
+                    GUILayout.Label("Message Options");
+                    GUILayout.BeginHorizontal();
+                    KLFGlobalSettings.Instance.SendNotifications
+                            = GUILayout.Toggle(KLFGlobalSettings.Instance.SendNotifications, "Recieve Message Notifications", GUI.skin.button);
+                    GUILayout.EndHorizontal();
+
                     //Key mapping
                     GUILayout.Label("Key-Bindings");
                     GUILayout.BeginHorizontal();
@@ -1444,18 +1600,24 @@ namespace KLF
                 && KLFScreenshotDisplay.Screenshot.Player == KLFScreenshotDisplay.WatchPlayerName)
                 {
                     bool pressed = false;
-                    if (KLFScreenshotDisplay.Screenshot.Index > 0
+                    if (KLFScreenshotDisplay.WatchPlayerIndex < 1)
+                        KLFScreenshotDisplay.WatchPlayerIndex = 1;
+                    if (KLFScreenshotDisplay.Screenshot.Index > 1
                     && GUILayout.Button("Prev", GUILayout.ExpandWidth(false)))
                     {
-                        KLFScreenshotDisplay.WatchPlayerIndex = KLFScreenshotDisplay.Screenshot.Index - 1;
+                        if (KLFScreenshotDisplay.WatchPlayerIndex > KLFScreenshotDisplay.Screenshot.Index)
+                            KLFScreenshotDisplay.WatchPlayerIndex = KLFScreenshotDisplay.Screenshot.Index;
+                        KLFScreenshotDisplay.WatchPlayerIndex -= 1;
                         pressed = true;
                     }
 
-                    if (GUILayout.Button("Next", GUILayout.ExpandWidth(false)))
+                    if (!pressed && KLFScreenshotDisplay.WatchPlayerIndex <= KLFScreenshotDisplay.Screenshot.Index
+                    && GUILayout.Button("Next", GUILayout.ExpandWidth(false)))
                     {
-                        KLFScreenshotDisplay.WatchPlayerIndex = KLFScreenshotDisplay.Screenshot.Index + 1;
+                        KLFScreenshotDisplay.WatchPlayerIndex += KLFScreenshotDisplay.Screenshot.Index + 1;
                         pressed = true;
                     }
+
                     if (pressed)
                         WriteScreenshotWatchUpdate();
                 }
@@ -1724,7 +1886,11 @@ namespace KLF
             if (playerSelected != (KLFScreenshotDisplay.WatchPlayerName == name))
             {
                 if (KLFScreenshotDisplay.WatchPlayerName != name)
+                {
+                    KLFScreenshotDisplay.Screenshot.Index = -1;
+                    KLFScreenshotDisplay.WatchPlayerIndex = 1;
                     KLFScreenshotDisplay.WatchPlayerName = name; //Set watch player name
+                }
                 else
                     KLFScreenshotDisplay.WatchPlayerName = String.Empty;
                 KLFScreenshotDisplay.WatchPlayerIndex = -1;
@@ -1744,6 +1910,39 @@ namespace KLF
             if (window.y > Screen.height - padding)
                 window.y = Screen.height - padding;
             return window;
+        }
+
+        private void CheckEditorLock()
+        {
+            Vector2 mousePos = Input.mousePosition;
+            mousePos.y = Screen.height - mousePos.y;
+            bool KLF_Scene_Check = false;
+            switch (HighLogic.LoadedScene)
+            {
+                case GameScenes.EDITOR:
+                case GameScenes.SPACECENTER:
+                case GameScenes.TRACKSTATION:
+                    KLF_Scene_Check =  true;
+                break;
+            }
+            bool should_lock = KLF_Scene_Check && ShouldDrawGui
+                && (KLFInfoDisplay.InfoWindowPos.Contains(mousePos)
+                    || (KLFScreenshotDisplay.WindowEnabled && KLFScreenshotDisplay.WindowPos.Contains(mousePos))
+                    || (KLFGlobalSettings.Instance.ChatWindowEnabled && KLFChatDisplay.WindowPos.Contains(mousePos))
+                   );
+
+            if (should_lock && !IsEditorLocked )
+            {
+                    //Debug.Log("KLF TEST ---- Locking editor");
+                    InputLockManager.SetControlLock(ControlTypes.All, "KLF_INPUTLOCKMANAGER_LOCK");
+                    IsEditorLocked = true;
+            }
+            else if (!should_lock && IsEditorLocked)
+            {
+                    //Debug.Log("KLF TEST ---- Unlocking Editor");
+                    InputLockManager.RemoveControlLock("KLF_INPUTLOCKMANAGER_LOCK");
+                    IsEditorLocked = false;
+            }
         }
     }
 }

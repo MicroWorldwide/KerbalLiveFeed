@@ -15,8 +15,8 @@ abstract class Client
     //Constants
     public const String CraftFileExtension = ".craft";
     public const int MaxTextMessageQueue = 256;
-    public const long KeepAliveDelay = 1000;
-    public const long UdpProbeDelay = 1000;
+    public const long KeepAliveDelay = 2000;
+    public const long UdpProbeDelay = 2000;
     public const long UdpTimeoutDelay = 20000;
     public const int SleepTime = 15;
     public const int ClientDataForceWriteInterval = 10000;

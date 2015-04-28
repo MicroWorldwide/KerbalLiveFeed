@@ -19,13 +19,13 @@ namespace KLF
             }
         }
 
-        public const float WindowWidthNormal = 320;
-        public const float WindowWidthWide = 440;
+        public const float WindowWidthNormal = 300;
+        public const float WindowWidthWide = 500;
         public const float WindowHeight = 360;
         public const int MaxChatOutQueue = 4;
-        public const int MaxChatLines = 16;
-        public const int MaxChatLineLength = 220;
-        public const float NameColorSaturationFactor = 0.35f;
+        public const int MaxChatLines = 100;
+        public const int MaxChatLineLength = 210;
+        public const float NameColorSaturationFactor = 0.55f;
         public static GUILayoutOption[] LayoutOptions;
 
         public static bool DisplayCommands = false;
